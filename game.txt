@@ -1,0 +1,832 @@
+Let's make a game!
+name:Fake Money Clicker
+by:Fractyl
+desc:</>Create as much fake money as you can!</><b>v0.2: The 2026 Update</b></>You have been actively playing for [timerDays] days, [timerHours] hours, [timerMinutes] minutes and [timerSeconds] seconds.
+created:29/03/2024
+version:0
+
+Settings
+
+tiling background:https://fractylizer.github.io/fake-money-clicker/img/bg.png
+spritesheet:icons, 48 by 48, https://fractylizer.github.io/fake-money-clicker/img/icons.png
+spritesheet:medicons, 96 by 96, https://fractylizer.github.io/fake-money-clicker/img/penny.png
+spritesheet:bigicons, 256 by 256, https://fractylizer.github.io/fake-money-clicker/img/big-button.png
+
+Layout
+
+use default
+*research
+	in:upgrades
+	contains:tag:researchUpgrade
+	header:Research
+	costs:hide
+	names:hide
+*upgBtns
+	in:upgrades
+	contains:tag:upgBtn
+
+CSS
+
+@import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap');
+
+
+#game {
+  font-family: Jost, sans-serif;
+  image-rendering: pixelated;
+}
+
+#box-buildings { background: linear-gradient(to right,rgba(0,0,0,0) 0%,#00bcd4 20%); }
+#box-upgrades { background: #00bcd4; }
+
+#game.filtersOn .thing-icon {
+  filter: drop-shadow(-3px 3px 1px rgba(0,0,0,0.5));
+}
+
+.box-header {
+	border-bottom-left-radius: 20px;
+	border-bottom-right-radius: 20px;
+	background-color: #fff;
+}
+.box-footer {
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+	background-color:#fff;
+}
+.building {
+	border-top-left-radius:20px;
+	border-bottom-left-radius:20px;
+	background-color:#fff;
+}
+#box-res.fullWidth{
+	top:50px;
+}
+#tooltip, .popup, .toast, #box-res, .tooltipBG {
+	border:3px ridge #dfd;
+	background-color:#131;
+	background: linear-gradient(0deg, #242 0%, #000 100%);
+	box-shadow:inset 0 0 5px 0 #bcb;
+}
+.tooltipBG:hover, #box-res:hover, .toast:hover {
+	background-color:#232;
+	background: linear-gradient(0deg, #464 0%, #000 100%);
+}
+.tooltipBG:hover .thing-icon{filter:drop-shadow(0px 0px 1px 2px rgba(255,255,255,0.5));}
+.button>.thing-text
+{
+	text-decoration:none;
+	color:#fff;
+	font-weight:bold;
+}
+.thing-icon.shiny-icon {                            
+	width:96px;       
+	height:96px;
+}
+.shinyEffect {
+	border:3px ridge #ffd;
+	background-color:#331;
+	background: linear-gradient(0deg, #442 0%, #000 100%);
+	box-shadow:inset 0 0 5px 0 #ccb;
+	font-weight:bold;
+}
+#box-upgrades .box-header {
+	margin-bottom:48px;
+}
+#box-upgrades #box-research .box-header {
+	margin-bottom:0px;
+}
+#box-upgBtns {
+	width:100%;
+	left:0%;
+	top:32px;
+	height:40px;
+	position:absolute;
+}
+.upgBtn {
+	height:40px;
+	width:35%;
+	border-radius:10px;
+	background:#fff;
+	margin:0;
+}
+.upgBtn>.thing-text {
+	color:#000;
+	padding:4px;
+}
+
+Resources
+
+*fakeMoney
+	name:Fake money
+	desc:Fake money to make as much as possible of. </>You have made [fakeMoney:earned] fake money in total, and are making [fakeMoney:ps] per second.
+	icon:icons[0,0]
+	on click:yield clickmoneydisplay
+*goods
+	name:Goods
+	icon:icons[12,1]
+	desc:Things you can use to buy fake goods or sell for fake money.
+*rsPoint|rsPoints
+	name:Research Points
+	desc:Gained by completing research. Can be used to unlock research upgrades.
+	icon:icons[3,0]
+*rsPrice
+	name:Research Price
+	on load:this is 1000000
+	hidden
+*rsTime
+	name:Research Time
+	on start:this is 60
+	hidden
+*rsTimer
+	name:Research Timer
+	on tick:
+		if (this = 0)
+			yield 1 rsPoint
+			this is -1
+		else if (this > 0) 
+			lose 1 this
+		end
+	end
+	on start:this is -1
+	can be negative
+	hidden
+
+*shopSell
+	on start:this is 1
+	hidden
+*totalBuildings
+	hidden
+	is always:artists+printers+farms+shops+mines+trees+factories+labs+banks
+*nonArtistBuildings
+	hidden
+	is always:printers+farms+shops+mines+trees+factories+labs+banks
+
+*frenzySecond|frenzySeconds 
+	name:Frenzy!
+	text:Frenzy! [this] seconds remain
+	desc:All building production <b>multiplied by 7</b>.
+	on tick:
+		lose 1 this
+		if (this > 0) 
+			multiply yield of :Buildings by 7	
+		end
+	end
+	hidden when 0
+	class:shinyEffect
+*clickFrenzySecond|clickFrenzySeconds 
+	name:Click Frenzy!
+	text:Click Frenzy! [this] seconds remain
+	desc:Drawing fake money <b>x777</b>!.
+	on tick:
+		lose 1 this
+		if (this > 0) 
+			multiply yield of drawFakeMoney by 777
+		end
+	end
+	hidden when 0
+	class:shinyEffect
+
+*timer
+on tick:
+	yield 1 timerSeconds
+	if (timerSeconds>58)
+		yield 1 timerMinutes
+		yield -60 timerSeconds
+	end
+	if (timerMinutes>59)
+		yield 1 timerHours
+		yield -60 timerMinutes
+	end
+	if (timerHours>23)
+		yield -24 timerHours
+		yield 1 timerDays
+	end
+end
+always hidden
+
+*timerSeconds
+	always hidden
+	can be negative
+*timerMinutes
+	always hidden
+*timerHours
+	always hidden
+*timerDays
+	always hidden
+
+// total/ps tracking resources
+
+*arTotal
+	always hidden
+*prTotal
+	always hidden
+*faTotal
+	always hidden
+*shTotal
+	always hidden
+*miTotal
+	always hidden
+*trTotal
+	always hidden
+*fyTotal
+	always hidden
+*laTotal
+	always hidden
+*baTotal
+	always hidden
+
+*fakeMoneyPS
+  is always:fakeMoney:ps
+  always hidden
+  on load:hide this
+
+*clickedFakeMoney
+  always hidden
+
+Buttons
+
+*drawFakeMoney
+	name:Draw Fake Money
+	desc:Draw a fake dollar bill.
+	on click:yield 1 fakeMoney
+  on click:yield 1 clickedFakeMoney
+	no text
+	icon:bigicons[0,0]
+	class:bigButton hasFlares
+
+*sellgoods
+	name:Sell Goods
+	desc:<b><#0ff>Actions:</b></#><.>Sells <b>1</b> goods.<.>Each one sells for <b>8</b> fake money.
+	req:have farmAch1
+	on click:
+		if (goods >= shopSell)
+			yield (8 * shopSell) fakeMoney
+			lose shopSell goods
+		end
+	end
+	icon:icons[12,1]
+	no text
+	class:tooltipBG
+
+*rsButton
+	name:Research
+	text:[?(rsTimer > 0)|Research will be complete in [rsTimer] second[s?rsTimer].|<b><#0f0>[rsPrice] fake money</#></b>]
+	icon:icons[3,0]
+	desc:Research into various fields in order to unlock new upgrades.</><b>Requires one Laboratory.</b></><b><#0ff>Actions:</b></#><.>Costs <b>[rsPrice]</b> fake money.<.>Takes <b>[rsTime]</b> seconds to complete. <.>Grants one Research Point.
+	on click:
+		if (rsTimer <= 0 and fakeMoney>=rsPrice and labs > 0) 
+			lose rsPrice fakeMoney
+			rsTimer is rsTime
+		end
+	end
+	class:tooltipBG
+
+*showAvailUpgs
+	name:Show Available
+	tag:upgBtn
+	class:upgBtn
+	on click:
+		hide :Upgrades:owned
+		show :Upgrades:notOwned
+		anim glow
+	end
+	no tooltip
+*showOwnedUpgs
+	name:Show Owned
+	tag:upgBtn
+	class:upgBtn
+	on click:
+		show :Upgrades:owned
+		hide :Upgrades:notOwned
+		anim glow
+	end
+	no tooltip
+
+Buildings
+		
+*artist|artists
+	name:Artist
+	desc:An artist to draw dollar bills for you.<b></></><#0ff>Effects:</b></#><.>Draws <b>1</b> dollar bill every ten seconds.</></><b><#0ff>Stats:</b></#></>One artist produces <b>[arTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> artists, producing <b>[arTotal:ps]</b> fake money per second.</><b>[arTotal]</b> bills drawn so far.
+	cost:15 fakeMoney
+	on tick:yield 0.1 fakeMoney
+	on tick:yield 0.1 arTotal
+	icon:icons[0,1]
+*printer|printers
+	name:Printer
+	desc:A printer to print dollar bills for you.<b></></><#0ff>Effects:</b></#><.>Prints <b>1</b> dollar bill per second.</></><b><#0ff>Stats:</b></#></>One printer produces <b>[prTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> printers, producing <b>[prTotal:ps]</b> fake money per second.</><b>[prTotal]</b> bills printed so far.
+	cost:100 fakeMoney
+	on tick:yield 1 fakeMoney
+	on tick:yield 1 prTotal
+	icon:icons[1,1]
+*farm|farms
+	name:Farm
+	desc:A farm to grow things.<b></></><#0ff>Effects:</b></#><.>Grows <b>1</b> plant per second.</></><b><#0ff>Stats:</b></#></>One farm produces <b>[faTotal:ps / this]</b> goods per second.</>You have <b>[this]</b> farms, producing <b>[faTotal:ps]</b> goods per second.</><b>[faTotal]</b> plants grown so far.
+	req:1 printer
+	cost:1000 fakeMoney
+	on tick:yield 1 goods
+	on tick:yield 1 faTotal
+	icon:icons[2,1]
+*shop|shops
+	name:Shop
+	desc:A shop to sell goods and receive fake money.<b></></><#0ff>Effects:</b></#><.>Sells <b>1</b> goods per second.<.>Each one sells for <b>8</b> fake money.</></><b><#0ff>Stats:</b></#></>One shop receives <b>[shTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> shops, producing <b>[shTotal:ps]</b> fake money per second.</><b>[shTotal]</b> dollars worth of goods sold so far.
+	req:1 printer
+	cost:2500 fakeMoney
+	on tick:
+		if (goods >= (shops * shopSell))
+			yield (8 * shopSell) fakeMoney 
+			yield (8 * shopSell) shTotal
+			lose shopSell goods
+		end
+	end
+	icon:icons[3,1]
+*mine|mines
+	name:Mine
+	desc:A mine to mine things.<b></></><#0ff>Effects:</b></#><.>Mines <b>8</b> minerals per second.</></><b><#0ff>Stats:</b></#></>One mine produces <b>[miTotal:ps / this]</b> goods per second.</>You have <b>[this]</b> mines, producing <b>[miTotal:ps]</b> goods per second.</><b>[miTotal]</b> minerals mined so far.
+	req:1 shop
+	cost:10000 fakeMoney
+	on tick:yield 8 goods
+	on tick:yield 8 miTotal
+	icon:icons[4,1]
+*tree|trees
+	name:Tree
+	desc:A tree to grow fake money on.<b></></><#0ff>Effects:</b></#><.>Grows <b>260</b> dollar bills per second.</></><b><#0ff>Stats:</b></#></>One tree produces <b>[trTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> trees, producing <b>[trTotal:ps]</b> fake money per second.</><b>[trTotal]</b> bills printed so far.
+	req:1 mine
+	cost:130000 fakeMoney
+	on tick:yield 260 fakeMoney
+	on tick:yield 160 trTotal
+	icon:icons[5,1]
+*factory|factories
+	name:Factory
+	desc:A factory to mass produce dollar bills for you.<b></></><#0ff>Effects:</b></#><.>Prints <b>1400</b> dollar bills per second.</></><b><#0ff>Stats:</b></#></>One factory produces <b>[fyTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> factories, producing <b>[fyTotal:ps]</b> fake money per second.</><b>[fyTotal]</b> bills printed so far.
+	req:1 tree
+	cost:1.4e6 fakeMoney
+	on tick:yield 1400 fakeMoney
+	on tick:yield 1400 fyTotal
+	icon:icons[6,1]
+*lab|labs
+	name:Laboratory
+	desc:A laboratory to create dollar bills using science.<b></></><#0ff>Effects:</b></#><.>Creates <b>7,800</b> dollar bills per second.</></><b><#0ff>Stats:</b></#></>One laboratory produces <b>[laTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> laboratories, producing <b>[laTotal:ps]</b> fake money per second.</><b>[laTotal]</b> bills printed so far.
+	req:1 factory
+	cost:2e7 fakeMoney
+	on tick:yield 7800 fakeMoney
+	on tick:yield 7800 laTotal
+	icon:icons[7,1]
+*bank|banks
+	name:Bank
+	desc:A bank to create fake money using interest.<b></></><#0ff>Effects:</b></#><.>Creates <b>44,000</b> dollar bills per second.</></><b><#0ff>Stats:</b></#></>One bank produces <b>[baTotal:ps / this]</b> fake money per second.</>You have <b>[this]</b> banks, producing <b>[baTotal:ps]</b> fake money per second.</><b>[baTotal]</b> bills gained so far.
+	req:1 lab
+	cost:3.3e8 fakeMoney
+	on tick:yield 44000 fakeMoney
+	on tick:yield 44000 baTotal
+	icon:icons[8,1]
+
+Shinies
+
+*luckypenny
+	name:Lucky penny
+	frequency:60
+	frequency variation:120
+	movement:anywhere growShrink
+	on click:
+		if (chance(20%))
+			yield 77 frenzySeconds
+			toast The lucky penny activates a <b><#ddc>Frenzy</#></b> for <b>77 seconds!</b>
+		else if (chance(4%))
+			yield 13 clickFrenzySeconds
+			toast The lucky penny activates a <b><#ddc>Click Frenzy</#></b> for <b>13 seconds!</b>
+		else
+			$amount=(random(3,5)*60*fakeMoney:ps)
+			yield $amount fakeMoney
+			toast The lucky penny grants you <b>[$amount]</b> fake money!
+		end
+	end
+	class:shinyIcon
+	icon:medicons[0,0]
+	no text
+	class:hasFlares
+
+
+Upgrades
+
+*TEMPLATE
+	on earn:hide this
+
+[i:artistUpg2x %num="1" %name="Longer pencils" %cost="100" %req="1" %icon="0,1"]
+[i:artistUpg2x %num="2" %name="Thicker pencils" %cost="500" %req="5" %icon="0,2"]
+[i:artistUpg2x %num="3" %name="Bright green lead" %cost="10000" %req="25" %icon="0,3"]
+[i:artistUpg2x %num="4" %name="High quality paper" %cost="100000" %req="50" %icon="0,4"]
+[i:artistUpg2x %num="5" %name="Consistent artstyle" %cost="1e7" %req="100" %icon="0,5"]
+
+[i:upg2x %id="printer" %plural="Printers" %num="1" %name="Brighter ink" %cost="1000" %req="1" %icon="1,1"]
+[i:upg2x %id="printer" %plural="Printers" %num="2" %name="High-speed printing" %cost="5000" %req="5" %icon="1,2"]
+[i:upg2x %id="printer" %plural="Printers" %num="3" %name="Larger ink cartridges" %cost="50000" %req="25" %icon="1,3"]
+[i:upg2x %id="printer" %plural="Printers" %num="4" %name="Noise reduction" %cost="5e6" %req="50" %icon="1,4"]
+[i:upg2x %id="printer" %plural="Printers" %num="5" %name="Increased DPI" %cost="5e8" %req="100" %icon="1,5"]
+
+[i:upg2x %id="farm" %plural="Farms" %num="1" %name="Strong hoes" %cost="11000" %req="1" %icon="2,1"]
+[i:upg2x %id="farm" %plural="Farms" %num="2" %name="Irrigation" %cost="55000" %req="5" %icon="2,2"]
+[i:upg2x %id="farm" %plural="Farms" %num="3" %name="Fertilizer" %cost="550000" %req="25" %icon="2,3"]
+[i:upg2x %id="farm" %plural="Farms" %num="4" %name="Artifical weather" %cost="5.5e7" %req="50" %icon="2,4"]
+[i:upg2x %id="farm" %plural="Farms" %num="5" %name="Genetic modification" %cost="5.5e9" %req="100" %icon="2,5"]
+
+[i:upg2x %id="shop" %plural="Shops" %num="1" %name="Price inflation" %cost="20000" %req="1" %icon="3,1"]
+[i:upg2x %id="shop" %plural="Shops" %num="2" %name="Prices ending in .99" %cost="100000" %req="5" %icon="3,2"]
+[i:upg2x %id="shop" %plural="Shops" %num="3" %name="Impulse purchases" %cost="1e6" %req="25" %icon="3,3"]
+[i:upg2x %id="shop" %plural="Shops" %num="4" %name="Interior decoration" %cost="1e8" %req="50" %icon="3,4"]
+[i:upg2x %id="shop" %plural="Shops" %num="5" %name="Fancy website" %cost="1e10" %req="100" %icon="3,5"]
+
+[i:shopSellUpg2x %num="1" %name="Increased storage" %cost="40000" %req="1" %icon="3,1"]
+[i:shopSellUpg2x %num="2" %name="Expedited shipping" %cost="200000" %req="5" %icon="3,2"]
+[i:shopSellUpg2x %num="3" %name="Better shop layouts" %cost="2e6" %req="25" %icon="3,3"]
+[i:shopSellUpg2x %num="4" %name="Advertisements" %cost="2e8" %req="50" %icon="3,4"]
+[i:shopSellUpg2x %num="5" %name="Subscriptions" %cost="2e10" %req="100" %icon="3,5"]
+
+[i:upg2x %id="mine" %plural="Mines" %num="1" %name="Strong pickaxes" %cost="120000" %req="1" %icon="4,1"]
+[i:upg2x %id="mine" %plural="Mines" %num="2" %name="Wider tunnels" %cost="600000" %req="5" %icon="4,2"]
+[i:upg2x %id="mine" %plural="Mines" %num="3" %name="Explosives" %cost="6e6" %req="25" %icon="4,3"]
+[i:upg2x %id="mine" %plural="Mines" %num="4" %name="Designer canaries" %cost="6e8" %req="50" %icon="4,4"]
+[i:upg2x %id="mine" %plural="Mines" %num="5" %name="A big ol' drill" %cost="6e10" %req="100" %icon="4,5"]
+
+[i:upg2x %id="tree" %plural="Trees" %num="1" %name="Replanting" %cost="1300000" %req="1" %icon="5,1"]
+[i:upg2x %id="tree" %plural="Trees" %num="2" %name="Deeper roots" %cost="6500000" %req="5" %icon="5,2"]
+[i:upg2x %id="tree" %plural="Trees" %num="3" %name="Reinforced bark" %cost="6.5e7" %req="25" %icon="5,3"]
+[i:upg2x %id="tree" %plural="Trees" %num="4" %name="Tree wisdom" %cost="6.5e9" %req="50" %icon="5,4"]
+[i:upg2x %id="tree" %plural="Trees" %num="5" %name="Tree treaties" %cost="6.5e11" %req="100" %icon="5,5"]
+
+[i:upg2x %id="factory" %plural="Factories" %num="1" %name="Rust prevention" %cost="1.4e7" %req="1" %icon="6,1"]
+[i:upg2x %id="factory" %plural="Factories" %num="2" %name="Robot workforce" %cost="7e7" %req="5" %icon="6,2"]
+[i:upg2x %id="factory" %plural="Factories" %num="3" %name="Thingamajigs" %cost="7e8" %req="25" %icon="6,3"]
+[i:upg2x %id="factory" %plural="Factories" %num="4" %name="Whatchamacallits" %cost="7e10" %req="50" %icon="6,4"]
+[i:upg2x %id="factory" %plural="Factories" %num="5" %name="Doohickeys" %cost="7e12" %req="100" %icon="6,5"]
+
+[i:upg2x %id="lab" %plural="Laboratories" %num="1" %name="Thicker test tubes" %cost="2e8" %req="1" %icon="7,1"]
+[i:upg2x %id="lab" %plural="Laboratories" %num="2" %name="Meniscus prevention" %cost="1e9" %req="5" %icon="7,2"]
+[i:upg2x %id="lab" %plural="Laboratories" %num="3" %name="Safety glasses" %cost="1e10" %req="25" %icon="7,3"]
+[i:upg2x %id="lab" %plural="Laboratories" %num="4" %name="Atomic modification" %cost="1e12" %req="50" %icon="7,4"]
+[i:upg2x %id="lab" %plural="Laboratories" %num="5" %name="Quantum manipulation" %cost="1e14" %req="100" %icon="7,5"]
+
+[i:upg2x %id="bank" %plural="Banks" %num="1" %name="Compound interest" %cost="3.3e9" %req="1" %icon="8,1"]
+[i:upg2x %id="bank" %plural="Banks" %num="2" %name="Fake money loans" %cost="1.65e10" %req="5" %icon="8,2"]
+[i:upg2x %id="bank" %plural="Banks" %num="3" %name="Diversified investments" %cost="1.65e11" %req="25" %icon="8,3"]
+[i:upg2x %id="bank" %plural="Banks" %num="4" %name="Fancy columns" %cost="1.65e13" %req="50" %icon="8,4"]
+[i:upg2x %id="bank" %plural="Banks" %num="5" %name="Burlap sacks" %cost="1.65e15" %req="100" %icon="8,5"]
+
+[i:clickUpg %num="1" %name="Plain cursor" %cost="5e4" %req="1000" %icon="9,1"]
+[i:clickUpg %num="2" %name="Red cursor" %cost="5e6" %req="1e5" %icon="9,2"]
+[i:clickUpg %num="3" %name="Blue cursor" %cost="5e8" %req="1e7" %icon="9,3"]
+[i:clickUpg %num="4" %name="Yellow cursor" %cost="5e10" %req="1e9" %icon="9,4"]
+[i:clickUpg %num="5" %name="Purple cursor" %cost="5e12" %req="1e11" %icon="9,5"]
+[i:clickUpg %num="6" %name="Green cursor" %cost="5e14" %req="1e13" %icon="9,6"]
+[i:clickUpg %num="7" %name="Dark cursor" %cost="5e16" %req="1e15" %icon="9,7"]
+[i:clickUpg %num="8" %name="Light cursor" %cost="5e18" %req="1e17" %icon="9,8"]
+
+
+[i:currencyUpg %num="1" %name="Fake USA dollars" %cost="5e4" %req="1e4" %icon="13,1"]
+[i:currencyUpg %num="2" %name="Fake euros" %cost="1e5" %req="5e4" %icon="13,2"]
+[i:currencyUpg %num="3" %name="Fake British pounds" %cost="2e5" %req="1e5" %icon="13,3"]
+[i:currencyUpg %num="4" %name="Fake Japanese yen" %cost="5e5" %req="2e5" %icon="13,4"]
+[i:currencyUpg %num="5" %name="Fake Australian dollars" %cost="1e6" %req="5e5" %icon="13,5"]
+[i:currencyUpg %num="6" %name="Fake francs" %cost="1e7" %req="1e6" %icon="13,6"]
+[i:currencyUpg %num="7" %name="Fake Canadian dollars" %cost="1e8" %req="1e7" %icon="13,7"]
+[i:currencyUpg %num="8" %name="Fake rupees" %cost="1e8" %req="1e7" %icon="13,8"]
+[i:currencyUpg %num="9" %name="Fake kronor" %cost="1e8" %req="1e7" %icon="13,10"]
+[i:currencyUpg %num="10" %name="Fake New Zealand dollars" %cost="1e8" %req="1e7" %icon="13,11"]
+
+[i:fakeUpg %num="1" %name="Fake dirt" %cost="10000" %req="1" %icon="12,1"]
+[i:fakeUpg %num="2" %name="Fake stone" %cost="20000" %req="5000" %icon="12,2"]
+[i:fakeUpg %num="3" %name="Fake wood" %cost="50000" %req="20000" %icon="12,3"]
+[i:fakeUpg %num="4" %name="Fake brick" %cost="1e5" %req="50000" %icon="12,4"]
+[i:fakeUpg %num="5" %name="Fake iron" %cost="5e5" %req="1e5" %icon="12,5"]
+[i:fakeUpg %num="6" %name="Fake gold" %cost="1e6" %req="5e5" %icon="12,6" %boost="2"]
+[i:fakeUpg %num="7" %name="Fake diamond" %cost="5e6" %req="1e6" %icon="12,7" %boost="2"]
+[i:fakeUpg %num="8" %name="Fake cookie" %cost="1e7" %req="5e6" %icon="12,8" %boost="2"]
+[i:fakeUpg %num="9" %name="Fake pizza" %cost="5e7" %req="1e7" %icon="12,10" %boost="2"]
+[i:fakeUpg %num="10" %name="Fake fake money" %cost="1e8" %req="5e7" %icon="12,11" %boost="3"]
+
+*rsUpgPaper
+	name:Paper research
+	desc:<b><#0ff>Effects:</b></#><.>Unlocks <b>paper upgrades</b>.
+	cost:2 rsPoints
+	req:1 rsPoint:earned
+	tag:researchUpgrade
+	no text
+	icon:icons[11,9]
+*rsupgtime
+	name:Research effiency research
+	desc:<b><#0ff>Effects:</b></#><.>Unlocks <b>research effiency upgrades</b>.
+	cost:10 rsPoints
+	req:2 rsPoints:earned
+	tag:researchUpgrade
+	no text
+	icon:icons[3,0]
+*rsUpgBuilding
+	name:Building research
+	desc:<b><#0ff>Effects:</b></#><.>Unlocks <b>building research upgrades</b>.
+	cost:25 rsPoints
+	req:11 rsPoints:earned
+	tag:researchUpgrade
+	no text
+	icon:icons[10,9]
+/*
+*rsupgclicking
+	name:Clicking research
+	desc:<b><#0ff>Effects:</b></#><.>Unlocks <b>special clicking upgrades</b>.
+	cost:50 rsPoints
+	req:20 rsPoints
+	tag:researchUpgrade
+	no text
+	icon:icons[9,9]
+*/
+
+[i:paperUpg %num="1" %name="Laminated paper" %cost="8e5" %icon="11,1"]
+[i:paperUpg %num="2" %name="Reinforced paper" %cost="8e6" %req="paperUpg1" %icon="11,2"]
+[i:paperUpg %num="3" %name="Iron paper" %cost="8e7" %req="paperUpg2" %icon="11,3"]
+[i:paperUpg %num="4" %name="Diamond paper" %cost="8e8" %req="paperUpg3" %icon="11,4" %boost="2"]
+[i:paperUpg %num="5" %name="Platinum paper" %cost="8e9" %req="paperUpg4" %icon="11,5" %boost="2"]
+[i:paperUpg %num="6" %name="Recycled paper" %cost="8e11" %req="paperUpg5" %icon="11,6" %boost="3"]
+[i:paperUpg %num="7" %name="Paper signed by celebrities" %cost="8e13" %req="paperUpg6" %icon="11,7" %boost="3"]
+[i:paperUpg %num="8" %name="Paper from the future" %cost="8e16" %req="paperUpg7" %icon="11,8" %boost="4"]
+[i:paperUpg %num="9" %name="The paperiest paper of them all" %cost="8e19" %req="paperUpg8" %icon="11,10" %boost="5"]
+
+*rstimeupg1
+	name:Bigger magnifying glass
+	desc:<b><#0ff>Effects:</b></#><.>Research takes <b>5 seconds</b> less to complete.
+	cost:5.5e6 fakeMoney
+	req:rsupgtime
+	on earn:lose 5 rsTime 
+	no text
+	icon:icons[3,0]
+*rstimeupg2
+	name:Browser extensions
+	desc:<b><#0ff>Effects:</b></#><.>Research takes <b>10 seconds</b> less to complete.
+	cost:2.55e7 fakeMoney
+	req:rstimeupg1
+	on earn:lose 10 rsTime 
+	no text
+	icon:icons[3,0]
+
+[i:buildingRSUpg %num="1" %id="artist" %single="Artist" %plural="Artists" %cost="1e8" %icon="0,9"]
+[i:buildingRSUpg %num="2" %id="printer" %single="Printer" %plural="Printers" %cost="5e10" %req="buildingRSUpg1" %icon="1,9"]
+[i:buildingRSUpg %num="3" %id="farm" %single="Farm" %plural="Farms" %cost="5.5e11" %req="buildingRSUpg2" %icon="2,9"]
+[i:buildingRSUpg %num="4" %id="shop" %single="Shop" %plural="Shops" %cost="11e11" %req="buildingRSUpg3" %icon="3,9"]
+[i:buildingRSUpg %num="5" %id="mine" %single="Mine" %plural="Mines" %cost="6e12" %req="buildingRSUpg4" %icon="4,9"]
+[i:buildingRSUpg %num="6" %id="tree" %single="Tree" %plural="Trees" %cost="6.5e13" %req="buildingRSUpg5" %icon="5,9"]
+[i:buildingRSUpg %num="7" %id="factory" %single="Factory" %plural="Factories" %cost="7e14" %req="buildingRSUpg6" %icon="6,9"]
+[i:buildingRSUpg %num="8" %id="lab" %single="Laboratory" %plural="Laboratories" %cost="1e16" %req="buildingRSUpg7" %icon="7,9"]
+[i:buildingRSUpg %num="9" %id="bank" %single="Bank" %plural="Banks" %cost="1.65e17" %req="buildingRSUpg8" %icon="8,9"]
+
+Achievements
+
+[i:fakeMoneyAch %num="1" %name="My first dollar" %amount="1" %icon="13,1"]
+[i:fakeMoneyAch %num="2" %name="My first grand" %amount="1000" %icon="13,2"]
+[i:fakeMoneyAch %num="3" %name="Money, money, money" %amount="10000" %icon="13,3"]
+[i:fakeMoneyAch %num="4" %name="Lump sum" %amount="1e5" %icon="13,4"]
+[i:fakeMoneyAch %num="5" %name="My first million" %amount="1e6" %icon="13,5"]
+[i:fakeMoneyAch %num="6" %name="Thriving economy" %amount="1e7" %icon="13,6"]
+[i:fakeMoneyAch %num="7" %name="Fakeonomics" %amount="1e8" %icon="13,7"]
+[i:fakeMoneyAch %num="8" %name="Monopoly money monopoly" %amount="1e9" %icon="13,8"]
+[i:fakeMoneyAch %num="9" %name="I don't know what money means" %amount="1e10" %icon="13,10"]
+[i:fakeMoneyAch %num="10" %name="You've really got this money thing figured out" %amount="1e11" %icon="13,11"]
+
+[i:fakeMoneyPSAch %num="1" %name="Passive income" %amount="1" %icon="13,1"]
+[i:fakeMoneyPSAch %num="2" %name="Return on investment" %amount="10" %icon="13,2"]
+[i:fakeMoneyPSAch %num="3" %name="Hefty salary" %amount="100" %icon="13,3"]
+[i:fakeMoneyPSAch %num="4" %name="Makes the world go round" %amount="1000" %icon="13,4"]
+[i:fakeMoneyPSAch %num="5" %name="Up this quarter" %amount="10000" %icon="13,5"]
+[i:fakeMoneyPSAch %num="6" %name="Economical anomaly" %amount="1e5" %icon="13,6"]
+[i:fakeMoneyPSAch %num="7" %name="No speed limit" %amount="1e6" %icon="13,7"]
+[i:fakeMoneyPSAch %num="8" %name="And it don't stop coming" %amount="1e7" %icon="13,8"]
+[i:fakeMoneyPSAch %num="9" %name="The Afakening" %amount="1e8" %icon="13,10"]
+[i:fakeMoneyPSAch %num="10" %name="Maximum wage" %amount="1e9" %icon="13,11"]
+
+[i:clickAch %num="1" %name="Manual labour" %req="1000" %icon="9,1"]
+[i:clickAch %num="2" %name="Now you're clicking" %req="1e5" %icon="9,2"]
+[i:clickAch %num="3" %name="Super clicker" %req="1e7" %icon="9,3"]
+[i:clickAch %num="4" %name="What the click" %req="1e9" %icon="9,4"]
+[i:clickAch %num="5" %name="Click clickley" %req="1e11" %icon="9,5"]
+[i:clickAch %num="6" %name="Another click in the wall" %req="1e13" %icon="9,6"]
+[i:clickAch %num="7" %name="Waving my click in the wind" %req="1e15" %icon="9,7"]
+[i:clickAch %num="8" %name="Clicken jockey" %req="1e17" %icon="9,8"]
+
+[i:ach %id="artist" %bname="artist" %num="1" %name="Artist" %amount="1" %icon="0,1"]
+[i:ach %id="artist" %bname="artists" %num="2" %name="Large studio" %amount="10" %icon="0,2"]
+[i:ach %id="artist" %bname="artists" %num="3" %name="How many artists does it take to screw in a lightbulb" %amount="50" %icon="0,3"]
+[i:ach %id="artist" %bname="artists" %num="4" %name="100 artists walk into a room" %amount="100" %icon="0,4"]
+[i:ach %id="artist" %bname="artists" %num="5" %name="Pen and paper" %amount="150" %icon="0,5"]
+
+[i:ach %id="printer" %bname="printer" %num="1" %name="Print" %amount="1" %icon="1,1"]
+[i:ach %id="printer" %bname="printers" %num="2" %name="That's a lot of ink" %amount="10" %icon="1,2"]
+[i:ach %id="printer" %bname="printers" %num="3" %name="Cacophony of printer noise" %amount="50" %icon="1,3"]
+[i:ach %id="printer" %bname="printers" %num="4" %name="Server room but just printers" %amount="100" %icon="1,4"]
+[i:ach %id="printer" %bname="printers" %num="5" %name="Printastic" %amount="150" %icon="1,5"]
+
+[i:ach %id="farm" %bname="farm" %num="1" %name="Freshly picked" %amount="1" %icon="2,1"]
+[i:ach %id="farm" %bname="farms" %num="2" %name="Homegrown" %amount="10" %icon="2,2"]
+[i:ach %id="farm" %bname="farms" %num="3" %name="Gardener extraordinaire" %amount="50" %icon="2,3"]
+[i:ach %id="farm" %bname="farms" %num="4" %name="Plant-based" %amount="100" %icon="2,4"]
+[i:ach %id="farm" %bname="farms" %num="5" %name="Agricultural perfection" %amount="150" %icon="2,5"]
+
+[i:ach %id="shop" %bname="shop" %num="1" %name="Cash only" %amount="1" %icon="3,1"]
+[i:ach %id="shop" %bname="shops" %num="2" %name="Substantial profit" %amount="10" %icon="3,2"]
+[i:ach %id="shop" %bname="shops" %num="3" %name="Hard bargains" %amount="50" %icon="3,3"]
+[i:ach %id="shop" %bname="shops" %num="4" %name="Sell sell sell" %amount="100" %icon="3,4"]
+[i:ach %id="shop" %bname="shops" %num="5" %name="Marketiquette" %amount="150" %icon="3,5"]
+
+[i:ach %id="mine" %bname="mine" %num="1" %name="Time to mine" %amount="1" %icon="4,1"]
+[i:ach %id="mine" %bname="mines" %num="2" %name="Expansive caverns" %amount="10" %icon="4,2"]
+[i:ach %id="mine" %bname="mines" %num="3" %name="Massive cave systems" %amount="50" %icon="4,3"]
+[i:ach %id="mine" %bname="mines" %num="4" %name="In too deep" %amount="100" %icon="4,4"]
+[i:ach %id="mine" %bname="mines" %num="5" %name="Mine, all mine" %amount="150" %icon="4,5"]
+
+[i:ach %id="tree" %bname="tree" %num="1" %name="Where money grows" %amount="1" %icon="5,1"]
+[i:achq %id="tree" %bname="trees" %num="2" %name="Trees team" %amount="10" %icon="5,2" %quote="The predecessor to Seas team."]
+[i:ach %id="tree" %bname="trees" %num="3" %name="Great forests" %amount="50" %icon="5,3"]
+[i:ach %id="tree" %bname="trees" %num="4" %name="Into the woods" %amount="100" %icon="5,4"]
+[i:ach %id="tree" %bname="trees" %num="5" %name="Dream sweet in tree major" %amount="150" %icon="5,5"]
+
+[i:ach %id="factory" %bname="factory" %num="1" %name="The cogs are turning" %amount="1" %icon="6,1"]
+[i:ach %id="factory" %bname="factories" %num="2" %name="Production chain" %amount="10" %icon="6,2"]
+[i:ach %id="factory" %bname="factories" %num="3" %name="Industrial revolution again" %amount="50" %icon="6,3"]
+[i:ach %id="factory" %bname="factories" %num="4" %name="Climate change" %amount="100" %icon="6,4"]
+[i:ach %id="factory" %bname="factories" %num="5" %name="Schloppity schlop" %amount="150" %icon="6,5"]
+
+[i:ach %id="lab" %bname="laboratory" %num="1" %name="Eureka" %amount="1" %icon="7,1"]
+[i:ach %id="lab" %bname="laboratories" %num="2" %name="Got chemistry" %amount="10" %icon="7,2"]
+[i:ach %id="lab" %bname="laboratories" %num="3" %name="Serious science" %amount="50" %icon="7,3"]
+[i:ach %id="lab" %bname="laboratories" %num="4" %name="Ultimate cashology" %amount="100" %icon="7,4"]
+[i:ach %id="lab" %bname="laboratories" %num="5" %name="Scientist hair" %amount="150" %icon="7,5"]
+
+[i:ach %id="bank" %bname="bank" %num="1" %name="Initial investment" %amount="1" %icon="8,1"]
+[i:ach %id="bank" %bname="banks" %num="2" %name="Making some bank" %amount="10" %icon="8,2"]
+[i:ach %id="bank" %bname="banks" %num="3" %name="Basic economics" %amount="50" %icon="8,3"]
+[i:ach %id="bank" %bname="banks" %num="4" %name="Insider trading" %amount="100" %icon="8,4"]
+[i:ach %id="bank" %bname="banks" %num="5" %name="Stonks" %amount="150" %icon="8,5"]
+
+
+[i:buildingsAch %num="1" %name="Builder" %amount="100" %icon="10,1"]
+[i:buildingsAch %num="2" %name="Construction" %amount="500" %icon="10,2"]
+[i:buildingsAch %num="3" %name="Build build build" %amount="1000" %icon="10,3"]
+[i:buildingsAch %num="4" %name="Modern architect" %amount="2500" %icon="10,4"]
+[i:buildingsAch %num="5" %name="Master builder of buildings related to fake money" %amount="5000" %icon="10,5"]
+
+*eachbuildingach1
+	name:Jack of all trades
+	desc:Have <b>one of each building</b>.
+	req:1 artist
+	req:1 printer
+	req:1 farm
+	req:1 shop
+	req:1 mine
+	req:1 tree
+	req:1 factory
+	req:1 lab
+	req:1 bank
+	icon:icons[10,10]
+
+*eachbuildingachb10
+	name:Decimal system
+	desc:Have <b>10 of the most expensive building, 20 of the second-most expensive, 30 of the next</b> and so on.
+	req:90 artists
+	req:80 printers
+	req:70 farms
+	req:60 shops
+	req:50 mines
+	req:40 trees
+	req:30 factories
+	req:20 labs
+	req:10 banks
+	icon:icons[11,1]
+
+*clickmoneydisplay
+	name:Incorrect methods
+	desc:Click the <b>fake money display</b>.
+	hidden when 0
+	icon:icons[6,0]
+
+Includes
+
+*include upg2x %id %plural %num %name %cost %req %icon
+	*[%id]Upg[%num]
+		name:[%name]
+		desc:<b><#0ff>Effects:</b></#><.>[%plural] are twice as efficient.
+		passive:multiply yield of [%id] by 2
+		cost:[%cost] fakeMoney
+		req:[%req] [%id]
+		icon:icons[[%icon]]
+    no text
+
+*include artistUpg2x %num %name %cost %req %icon
+  *artistUpg[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>Drawing fake money is twice as efficient. <.>Artists are twice as efficient.
+    passive:
+      multiply yield of drawFakeMoney by 2
+      multiply yield of artists by 2
+    end
+    cost:[%cost] fakeMoney
+    req:[%req] artists
+    no text
+    icon:icons[[%icon]]
+   
+*include shopSellUpg2x %num %name %cost %req %icon 
+  *shopSellUpg[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>You can sell twice as many goods per click.<.>Shops sell twice as many goods.
+    on earn:yield shopSell shopSell
+    cost:[%cost] fakeMoney
+    req:[%req] shops
+    no text
+    icon:icons[[%icon]]
+
+*include fakeUpg %num %name %cost %req %icon %boost="1"
+  *fakeUpg[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>Fake money production <b>+[%boost]%</b>.
+    passive:multiply yield of fakeMoney by (1 + ([%boost]/100))
+    cost:[%cost] goods
+    req:[%req] goods:earned
+    no text
+    icon:icons[[%icon]]
+    
+*include clickUpg %num %name %cost %req %icon 
+  *clickUpg[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>Clicking gains <b>+1% of your fake money per second.</b>
+    passive:increase yield of drawFakeMoney by fakeMoneyPS/100
+    cost:[%cost] fakeMoney
+    req:[%req] clickedFakeMoney
+    no text
+    icon:icons[[%icon]]
+
+*include currencyUpg %num %name %cost %req %icon %boost="1"
+  *currencyUpg[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>Fake money production <b>+[%boost]%</b>.
+    passive:multiply yield of fakeMoney by (1 + ([%boost]/100))
+    cost:[%cost] fakeMoney
+    req:[%req] fakeMoney:earned
+    no text
+    icon:icons[[%icon]]
+
+*include paperUpg %num %name %cost %req="rsUpgPaper" %icon %boost="1"
+  *paperUpg[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>Fake money production <b>+[%boost]%</b>.
+    cost:[%cost] fakeMoney
+    req:have [%req]
+    passive:multiply yield of fakeMoney by (1 + ([%boost]/100))
+    no text
+    icon:icons[[%icon]]
+
+*include buildingRSUpg %num %id %single %plural %cost %req="rsUpgBuilding" %icon 
+  *buildingRSUpg[%num]
+    name:[%single] research
+    desc:<b><#0ff>Effects:</b></#><.>[%plural] are twice as efficient.
+    passive:multiply yield of [%id] by 2
+    cost:[%cost] fakeMoney, 1 rsPoint
+    req:1 [%id]
+    req:have rsUpgBuilding
+    req:have [%req]
+    no text
+    icon:icons[[%icon]]
+
+*include fakeMoneyAch %num %name %amount %icon 
+  *fakeMoneyAch[%num]
+    name:[%name]
+    desc:Earn <b>[[%amount]]</b> fake money.
+    req:[%amount] fakeMoney:earned
+    icon:icons[[%icon]]
+*include fakeMoneyPSAch %num %name %amount %icon 
+  *fakeMoneyPSAch[%num]
+    name:[%name]
+    desc:Earn <b>[[%amount]]</b> fake money per second.
+    req:[%amount] fakeMoney:ps
+    icon:icons[[%icon]]
+
+*include clickAch %num %name %req %icon 
+  *clickAch[%num]
+    name:[%name]
+    desc:<b><#0ff>Effects:</b></#><.>Make <b>[[%req]] fake money</b> from clicking.
+    req:[%req] clickedFakeMoney
+    no text
+    icon:icons[[%icon]]
+
+*include ach %id %bname %num %name %amount %icon %quote="1000"
+	*[%id]Ach[%num]
+		name:[%name]
+		desc:Have <b>[%amount] [%bname]</b>.
+		req:[%amount] [%id]
+		icon:icons[[%icon]]
+
+*include achq %id %bname %num %name %amount %icon %quote="1000"
+	*[%id]Ach[%num]
+		name:[%name]
+		desc:Have <b>[%amount] [%bname]</b>.<q>"[%quote]"</q>
+		req:[%amount] [%id]
+		icon:icons[[%icon]]
+    
+*include buildingsAch %num %name %amount %icon 
+  *buildingsAch[%num]
+    name:[%name]
+    desc:Have <b>[%amount] buildings</b>.
+    req:[%amount] totalBuildings
+		icon:icons[[%icon]]
